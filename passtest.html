@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interface Palapass</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Police Minecraft Dungeons (Titre) -->
+    <link href="https://fonts.cdnfonts.com/css/minecraft-dungeons" rel="stylesheet">
+    
+    <!-- Montserrat (Texte) -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            /* FOND GRIS UNI (Texture supprimée) */
+            background-color: #2b2b2b; 
+            height: 100vh;
+            width: 100vw;
+            margin: 0;
+            overflow: hidden;
+            color: white;
+        }
+
+        /* Container Principal avec Scroll si nécessaire */
+        .gui-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 2rem;
+            position: relative;
+            overflow-y: auto; /* Permet de scroller si l'écran est petit */
+        }
+
+        /* Wrapper de contenu centré */
+        .content-wrapper {
+            margin: auto;
+            width: 100%;
+            max-width: 80rem; /* Largeur max confortable */
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        /* --- TYPOGRAPHIE --- */
+        .font-dungeons {
+            font-family: 'Minecraft Dungeons', sans-serif;
+            letter-spacing: 1px;
+        }
+
+        .title-red {
+            color: #ef4444; 
+            text-shadow: 0px 6px 0px #7f1d1d; /* Ombre verticale stricte comme l'autre interface */
+        }
+
+        .text-shadow-sm {
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.5);
+        }
+
+        /* --- SCROLLBAR CUSTOM (Style Gros Bloc Identique Jobs) --- */
+        
+        /* La zone de scroll globale */
+        ::-webkit-scrollbar {
+            width: 26px; /* Très large */
+            height: 26px; /* Pour le scroll horizontal aussi */
+            background: #1a1a1a;
+        }
+
+        /* Le fond (Track) */
+        ::-webkit-scrollbar-track {
+            background-color: #1a1a1a; 
+            border-left: 2px solid #333;
+        }
+
+        /* La barre (Thumb) */
+        ::-webkit-scrollbar-thumb {
+            background-color: #c6c6c6; /* Gris clair */
+            border: 2px solid #1a1a1a; /* Bordure fine */
+            border-radius: 0; /* Carré parfait */
+        }
+
+        /* Au survol */
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: #ffffff; 
+        }
+        
+        /* Coin */
+        ::-webkit-scrollbar-corner {
+            background: #1a1a1a;
+        }
+
+        /* Masquer la scrollbar pour la frise horizontale (on utilise les boutons) */
+        .hide-scrollbar::-webkit-scrollbar {
+            height: 0px;
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+
+        /* --- COMPOSANTS --- */
+        
+        /* Bouton Rouge (Style Mod) */
+        .btn-red {
+            background: linear-gradient(180deg, #e74c3c 0%, #c0392b 100%);
+            border: 1px solid #ffffff;
+            border-bottom: 4px solid #7f1d1d;
+            color: white;
+            text-transform: uppercase;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 800;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: all 0.1s;
+        }
+        .btn-red:active {
+            transform: translateY(2px);
+            border-bottom-width: 2px;
+        }
+        .btn-red:hover {
+            filter: brightness(1.1);
+        }
+
+        /* Hexagone CSS pour les rewards */
+        .hex-container {
+            width: 90px;
+            height: 100px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            background: #3f3f46; /* Plus clair pour ressortir sur le fond gris */
+            transition: transform 0.2s;
+            flex-shrink: 0; /* Empêche l'écrasement */
+        }
+        .hex-container:hover {
+            transform: scale(1.05);
+        }
+        .hex-border {
+            position: absolute;
+            inset: 4px;
+            background: #27272a;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            z-index: 0;
+        }
+        /* Hexagone Actif (Vert) */
+        .hex-active .hex-container {
+            background: #4ade80;
+        }
+        .hex-active .hex-border {
+            background: #4ade80; /* Fond plein vert */
+        }
+
+        /* Track Connector Line */
+        .track-line {
+            height: 8px;
+            width: 40px; /* Longueur fixe */
+            background-color: #404040;
+            flex-shrink: 0;
+            border-radius: 4px;
+        }
+        .track-line.active {
+            background-color: #4ade80;
+        }
+
+        /* Quests Progress Bar */
+        .progress-bar-bg {
+            background-color: #404040;
+            height: 12px;
+            width: 100%;
+            position: relative;
+        }
+        .progress-bar-fill {
+            background-color: #4ade80;
+            height: 100%;
+            transition: width 0.5s ease-out;
+        }
+
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="gui-container">
+        
+        <!-- Close Button -->
+        <div class="absolute top-4 right-4 z-50">
+            <button onclick="closeGui()" class="bg-red-600 hover:bg-red-700 text-white w-8 h-8 flex items-center justify-center rounded-sm text-sm font-bold shadow-lg border-2 border-red-800 transition transform hover:scale-110">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="content-wrapper">
+            
+            <!-- TITLE HEADER -->
+            <div class="mb-2 border-b border-white/10 pb-4">
+                <h1 class="font-dungeons title-red text-6xl uppercase leading-none mb-2">PALAPASS</h1>
+            </div>
+
+            <!-- VIEW 1: REWARDS TRACK (Main) -->
+            <div id="view-rewards" class="flex-1 flex flex-col w-full fade-in relative mt-4">
+                
+                <!-- Top Section: Info + Central Item + Premium -->
+                <div class="flex flex-col lg:flex-row gap-8 h-full mb-8">
+                    
+                    <!-- Left Info Block -->
+                    <div class="flex-1 flex flex-col justify-start">
+                        <div class="flex flex-col gap-1 mb-6">
+                            <div class="text-3xl font-bold text-white uppercase tracking-tight">Saison 02</div>
+                            <div class="text-sm text-gray-300 font-bold tracking-wider uppercase">Temps restant : 13j 13h 18min</div>
+                            <div class="text-sm text-yellow-500 font-bold tracking-wider uppercase mt-1">500 Points</div>
+                            
+                            <div class="mt-6">
+                                <button onclick="switchView('quests')" class="btn-red px-8 py-3 text-sm tracking-wider rounded-sm">
+                                    Voir les quêtes
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Center Visual (Fixed position bug: now flex item) -->
+                    <div class="flex-[2] flex flex-col items-center justify-center py-8 lg:py-0">
+                        <h2 class="font-dungeons text-4xl text-white text-shadow-sm mb-6 tracking-wide text-center">
+                            32 Lingots de Fer
+                        </h2>
+                        <!-- Image avec animation subtile -->
+                        <img src="https://img.icons8.com/color/240/iron-ingot.png" alt="Reward" class="w-48 h-48 lg:w-56 lg:h-56 drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)] animate-pulse object-contain">
+                    </div>
+
+                    <!-- Right Box: Premium Upsell -->
+                    <div class="w-full lg:w-64 bg-[#1e1e1e] border-2 border-[#3f3f46] p-4 flex flex-col items-center text-center relative rounded-sm shadow-xl">
+                        <div class="font-dungeons text-red-500 text-2xl uppercase mb-4 leading-tight">Acheter le<br>Premium</div>
+                        
+                        <!-- 3D Skin Placeholder -->
+                        <div class="flex-1 w-full flex items-center justify-center relative min-h-[120px]">
+                            <img src="https://minotar.net/armor/body/Notch/100.png" class="h-32 object-contain drop-shadow-lg z-10" alt="Skin">
+                            <!-- Glow derrière le skin -->
+                            <div class="absolute inset-0 bg-gradient-to-t from-[#1e1e1e] via-transparent to-transparent z-0"></div>
+                        </div>
+
+                        <button class="btn-red w-full py-3 mt-4 text-sm rounded-sm">Acheter</button>
+                    </div>
+                </div>
+
+                <!-- Bottom Section: The Track -->
+                <div class="mt-auto w-full bg-[#1e1e1e] p-4 rounded-sm border border-[#3f3f46] shadow-lg">
+                    
+                    <div class="flex items-center justify-between w-full gap-4">
+                        <!-- Left Arrow -->
+                        <button onclick="scrollTrack('left')" class="text-gray-400 hover:text-white text-4xl px-2 transition"><i class="fas fa-chevron-left"></i></button>
+
+                        <!-- Track Nodes Container (Scrollable hidden) -->
+                        <div id="track-scroll-container" class="flex-1 flex items-center px-4 overflow-x-auto hide-scrollbar gap-2 scroll-smooth">
+                            
+                            <!-- Node 1 -->
+                            <div class="flex flex-col items-center gap-2 shrink-0">
+                                <span class="text-[10px] font-bold text-gray-400 uppercase">Gratuit</span>
+                                <div class="hex-container hex-active">
+                                    <div class="hex-border flex items-center justify-center text-white">
+                                        <i class="fas fa-check text-4xl drop-shadow-md"></i>
+                                    </div>
+                                </div>
+                                <span class="font-bold text-white mt-2">1</span>
+                            </div>
+
+                            <div class="track-line active"></div>
+
+                            <!-- Node 2 -->
+                            <div class="flex flex-col items-center gap-2 shrink-0">
+                                <span class="text-[10px] font-bold text-red-500 uppercase">Premium</span>
+                                <div class="hex-container">
+                                    <div class="absolute -top-2 -right-2 z-20 text-gray-400 bg-[#2b2b2b] rounded-full w-6 h-6 flex items-center justify-center border border-[#3f3f46]">
+                                        <i class="fas fa-lock text-xs"></i>
+                                    </div>
+                                    <div class="hex-border bg-[#27272a] flex items-center justify-center">
+                                        <div class="flex flex-col items-center">
+                                            <img src="https://img.icons8.com/color/48/emerald.png" class="w-8 h-8 mb-1">
+                                            <span class="text-xs font-bold">x4</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <span class="font-bold text-gray-400 mt-2">2</span>
+                            </div>
+
+                            <div class="track-line"></div>
+
+                            <!-- Node 3 -->
+                            <div class="flex flex-col items-center gap-2 shrink-0">
+                                <span class="text-[10px] font-bold text-gray-400 uppercase">Gratuit</span>
+                                <div class="hex-container">
+                                    <div class="hex-border bg-[#27272a] flex items-center justify-center">
+                                        <div class="flex flex-col items-center">
+                                            <img src="https://img.icons8.com/color/48/ender-pearl.png" class="w-8 h-8 mb-1">
+                                            <span class="text-xs font-bold">x16</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <span class="font-bold text-gray-400 mt-2">3</span>
+                            </div>
+
+                            <div class="track-line"></div>
+
+                            <!-- Node 4 -->
+                            <div class="flex flex-col items-center gap-2 shrink-0">
+                                <span class="text-[10px] font-bold text-red-500 uppercase">Premium</span>
+                                <div class="hex-container">
+                                    <div class="absolute -top-2 -right-2 z-20 text-gray-400 bg-[#2b2b2b] rounded-full w-6 h-6 flex items-center justify-center border border-[#3f3f46]">
+                                        <i class="fas fa-lock text-xs"></i>
+                                    </div>
+                                    <div class="hex-border bg-[#27272a] flex items-center justify-center">
+                                        <div class="flex flex-col items-center">
+                                            <img src="https://img.icons8.com/color/48/experience-bottle.png" class="w-8 h-8 mb-1">
+                                            <span class="text-xs font-bold">x1K</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <span class="font-bold text-gray-400 mt-2">4</span>
+                            </div>
+
+                            <div class="track-line"></div>
+
+                            <!-- Node 5 -->
+                            <div class="flex flex-col items-center gap-2 shrink-0">
+                                <span class="text-[10px] font-bold text-gray-400 uppercase">Gratuit</span>
+                                <div class="hex-container">
+                                    <div class="hex-border bg-[#27272a] flex items-center justify-center">
+                                        <div class="flex flex-col items-center">
+                                            <img src="https://img.icons8.com/color/48/diamond.png" class="w-8 h-8 mb-1">
+                                            <span class="text-xs font-bold">x8</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <span class="font-bold text-gray-400 mt-2">5</span>
+                            </div>
+                             <div class="track-line"></div>
+                            <!-- Node 6 (Extra for scroll demo) -->
+                            <div class="flex flex-col items-center gap-2 shrink-0">
+                                <span class="text-[10px] font-bold text-gray-400 uppercase">Gratuit</span>
+                                <div class="hex-container">
+                                    <div class="hex-border bg-[#27272a] flex items-center justify-center">
+                                        <div class="flex flex-col items-center">
+                                            <img src="https://img.icons8.com/color/48/gold-ore.png" class="w-8 h-8 mb-1">
+                                            <span class="text-xs font-bold">x32</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <span class="font-bold text-gray-400 mt-2">6</span>
+                            </div>
+
+                        </div>
+
+                        <!-- Right Arrow -->
+                        <button onclick="scrollTrack('right')" class="text-white hover:text-red-500 text-4xl px-2 transition"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW 2: QUESTS (Hidden by default) -->
+            <div id="view-quests" class="hidden flex-1 flex flex-col w-full fade-in h-full mt-4 overflow-hidden">
+                
+                <div class="mb-6">
+                    <button onclick="switchView('rewards')" class="text-gray-400 hover:text-white text-sm font-bold flex items-center gap-2 uppercase tracking-wide transition">
+                        <i class="fas fa-arrow-left text-red-500"></i> Retour au Pass
+                    </button>
+                </div>
+
+                <!-- Scrollable Quests List -->
+                <div class="flex-1 overflow-y-auto pr-4">
+                    
+                    <!-- SECTION: JOURNALIÈRE -->
+                    <h2 class="font-dungeons text-3xl text-white uppercase mb-6 border-l-4 border-red-500 pl-4">Quête Journalière</h2>
+                    
+                    <!-- Quest Item -->
+                    <div class="bg-[#1e1e1e] border border-[#3f3f46] p-6 mb-4 flex items-center gap-6 hover:bg-[#252529] transition rounded-sm shadow-md">
+                        <!-- Icon -->
+                        <div class="w-20 h-20 bg-[#121212] rounded flex items-center justify-center border border-[#333]">
+                            <img src="https://img.icons8.com/color/96/birch.png" class="w-14 h-14 pixelated">
+                        </div>
+                        
+                        <!-- Content -->
+                        <div class="flex-1">
+                            <div class="flex justify-between items-end mb-1">
+                                <div class="text-lg font-bold uppercase text-white">Bucheron Fou</div>
+                                <div class="text-xs font-bold text-yellow-500">50 XP</div>
+                            </div>
+                            <div class="text-xs text-gray-400 font-bold uppercase mb-4">Casser 150 buches de bouleau</div>
+                            
+                            <!-- Progress -->
+                            <div class="flex items-center gap-4">
+                                <div class="progress-bar-bg flex-1 rounded-sm overflow-hidden">
+                                    <div class="progress-bar-fill" style="width: 30%;"></div>
+                                </div>
+                                <span class="text-sm font-bold font-mono text-gray-300">45/150</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quest Item -->
+                    <div class="bg-[#1e1e1e] border border-[#3f3f46] p-6 mb-4 flex items-center gap-6 hover:bg-[#252529] transition rounded-sm shadow-md">
+                        <div class="w-20 h-20 bg-[#121212] rounded flex items-center justify-center border border-[#333]">
+                            <img src="https://img.icons8.com/color/96/minecraft-pickaxe.png" class="w-14 h-14 pixelated">
+                        </div>
+                        <div class="flex-1">
+                             <div class="flex justify-between items-end mb-1">
+                                <div class="text-lg font-bold uppercase text-white">Mineur Débutant</div>
+                                <div class="text-xs font-bold text-yellow-500">100 XP</div>
+                            </div>
+                            <div class="text-xs text-gray-400 font-bold uppercase mb-4">Miner 128 minerais d'améthyste</div>
+                            <div class="flex items-center gap-4">
+                                <div class="progress-bar-bg flex-1 rounded-sm overflow-hidden">
+                                    <div class="progress-bar-fill" style="width: 0%;"></div>
+                                </div>
+                                <span class="text-sm font-bold font-mono text-gray-300">0/128</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION: SAISONNIÈRE -->
+                    <h2 class="font-dungeons text-3xl text-white uppercase mb-6 mt-8 border-l-4 border-red-500 pl-4">Quête Saisonnière</h2>
+                    
+                    <!-- Quest Item (With Progress) -->
+                    <div class="bg-[#1e1e1e] border border-[#3f3f46] p-6 mb-4 flex items-center gap-6 hover:bg-[#252529] transition relative overflow-hidden rounded-sm shadow-md">
+                        <div class="absolute top-0 right-0 bg-[#2a2a30] px-3 py-1 text-[10px] font-bold text-gray-400 border-b border-l border-[#3f3f46]">TIER I</div>
+                        <div class="w-20 h-20 bg-[#121212] rounded flex items-center justify-center border border-[#333]">
+                            <img src="https://img.icons8.com/color/96/walking.png" class="w-14 h-14 pixelated">
+                        </div>
+                        <div class="flex-1">
+                             <div class="flex justify-between items-end mb-1">
+                                <div class="text-lg font-bold uppercase text-white">Marcheur Fou</div>
+                                <div class="text-xs font-bold text-yellow-500">500 XP</div>
+                            </div>
+                            <div class="text-xs text-gray-400 font-bold uppercase mb-4">Marcher sur une distance de 5000 blocs</div>
+                            <div class="flex items-center gap-4">
+                                <div class="progress-bar-bg flex-1 rounded-sm overflow-hidden">
+                                    <div class="progress-bar-fill" style="width: 8%;"></div>
+                                </div>
+                                <span class="text-sm font-bold font-mono text-gray-300">401/5K</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- API SIMULATION ---
+        function closeGui() {
+            if (window.fancyMenu && window.fancyMenu.close) {
+                window.fancyMenu.close();
+            } else {
+                document.body.style.display = 'none';
+            }
+        }
+
+        // --- VIEW SWITCHING ---
+        const views = {
+            rewards: document.getElementById('view-rewards'),
+            quests: document.getElementById('view-quests')
+        };
+
+        function switchView(viewName) {
+            // Hide all
+            Object.values(views).forEach(el => el.classList.add('hidden'));
+            // Show target
+            views[viewName].classList.remove('hidden');
+        }
+
+        // --- TRACK SCROLLING ---
+        function scrollTrack(direction) {
+            const container = document.getElementById('track-scroll-container');
+            const scrollAmount = 150; // Largeur approx d'un noeud + espace
+
+            if (direction === 'left') {
+                container.scrollLeft -= scrollAmount;
+            } else {
+                container.scrollLeft += scrollAmount;
+            }
+        }
+    </script>
+</body>
+</html>
